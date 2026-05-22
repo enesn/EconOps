@@ -1,5 +1,6 @@
-# Motivation
 This repository documents a workflow, inspired by “DevOps”, “MLOps”, and “DataOps” practices but simplified and adapted specifically to the needs of economists. I hope it will evolve further and prove useful to other researchers by helping them avoid the kinds of serious data infrastructure problems that I encountered during my own projects. 
+
+# Motivation
 
 These problems disrupted my computing environment in the middle of revision and resubmission, complicated communication and implementation of revisions, became increasingly unmanageable as data requirements expanded exponentially, and ultimately required substantial time and effort to restore reproducibility and replication of research-specific results.
 
