@@ -1,5 +1,6 @@
 
 
+# Step 1: Creating a Docker image for data analysis [DL] [PL]
 ### Install the Docker Desktop/Engine
 
 https://docs.docker.com/engine/install/
