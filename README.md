@@ -106,7 +106,7 @@ Overall, the workflow ensures that each project version is explicitly mapped to 
 
 # Implementation
 
-[Step 1: Creating a Docker image for data analysis [DL] [PL]](https://www.notion.so/Step-1-Creating-a-Docker-image-for-data-analysis-DL-PL-3650e7e48a5380929ab3d0e46e89bac0?pvs=21)
+[Step 1: Creating a Docker image for data analysis [DL] [PL]](#implementation/step1.md)
 
 [Step 2: Initializing and running a layer [DL] [PL] ](https://www.notion.so/Step-2-Initializing-and-running-a-layer-DL-PL-3650e7e48a5380e0b43acc3fafb27c82?pvs=21)
 
