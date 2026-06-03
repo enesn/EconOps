@@ -108,9 +108,9 @@ Overall, the workflow ensures that each project version is explicitly mapped to 
 
 [Step 1: Creating a Docker image for data analysis [DL] [PL]](implementation/step1.md)
 
-[Step 2: Initializing and running a layer [DL] [PL] ](https://www.notion.so/Step-2-Initializing-and-running-a-layer-DL-PL-3650e7e48a5380e0b43acc3fafb27c82?pvs=21)
+[Step 2: Initializing and running a layer [DL] [PL] ](implementation/step2.md)
 
-[Step 3: Choosing a storage platform [DL]](https://www.notion.so/Step-3-Choosing-a-storage-platform-DL-3670e7e48a538033adfdec83aacda80d?pvs=21)
+[Step 3: Choosing a storage platform [DL]](implementation/step3.md)
 
 [Step 4: Choosing a data format [DL]](https://www.notion.so/Step-4-Choosing-a-data-format-DL-3670e7e48a538006b16cf6b21a4abb67?pvs=21)
 
