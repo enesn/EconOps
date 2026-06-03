@@ -1,3 +1,4 @@
+# Step 3: Choosing a storage platform [DL] 
 While my current data size is still quite manageable, reaching 5 TB is realistic over time if I continuously append new data waves, retain historical snapshots, or duplicate merged datasets.
 
 For my scale, a simple file-storage workflow using Dropbox can still remain sufficient for quite a long time if datasets are partitioned properly. Yet, I still wanted to compare the alternatives with realistic use cases:
