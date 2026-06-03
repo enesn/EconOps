@@ -1,4 +1,4 @@
-# Providing authenticated data access to co-authors, RAs, and external researchers [DL]
+# Step 6: Providing authenticated data access to co-authors, RAs, and external researchers [DL]
 Some datasets are proprietary, which restricts redistribution, and even for semi-public sources like PSID, researchers are typically not allowed to share raw microdata. So replication repositories cannot include full input datasets or direct links to them. Instead, access can be granted to researchers who meet data use agreement requirements.
 
 A simple implementation is to store the data on Dropbox and have each project access it through a shared link that is available only to authenticated users, with the option to revoke the link once the work is completed. However, this approach still has important limitations.
