@@ -114,6 +114,6 @@ Overall, the workflow ensures that each project version is explicitly mapped to 
 
 [Step 4: Choosing a data format [DL]](implementation/step4.md)
 
-[Step 5: Metadata management [DL]](https://www.notion.so/Step-5-Metadata-management-DL-3670e7e48a5380b5a57acb88939ab5f9?pvs=21)
+[Step 5: Metadata management [DL]](implementation/step5.md)
 
 [Step 6: Providing authenticated data access to co-authors, RAs, and external researchers [DL]](implementation/step6.md)
