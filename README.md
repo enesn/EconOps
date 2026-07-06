@@ -4,16 +4,16 @@ This repository documents a workflow, inspired by “DevOps”, “MLOps”, and
 
 # Motivation
 
-These problems disrupted my computing environment in the middle of revision and resubmission, complicated communication and implementation of revisions, became increasingly unmanageable as data requirements expanded exponentially, and ultimately required substantial time and effort to restore reproducibility and replication of research-specific results.
+The problems disrupted my computing environment in the middle of revision and resubmission, complicated communication and implementation of revisions, became increasingly unmanageable as data requirements expanded exponentially. And required substantial time and effort to restore reproducibility and replication of research/project-specific results.
 
  In my case, these problems included, but were not limited to, the following:
 
-- An R or Python package maintained by a third-party volunteer on GitHub, but unavailable on CRAN or PyPI, could disappear irreversibly from the computing environment during a revise-and-resubmit process after an accidental update of the R or Python version.
+- An R or Python package maintained by a third-party volunteer on GitHub, but unavailable on CRAN or PyPI, could disappear irreversibly from the computing environment during a revise-and-resubmit process after an accidental update of the R version.
 - Although storing all project-specific input data within each research project improved replication across different computing environments, projects using the same datasets repeatedly had to redo cleaning and preprocessing from scratch, while codebooks and recoding procedures became fragmented across projects or were eventually lost in most cases.
-    - Duplicating the same datasets across multiple projects also substantially increased disk usage and cloud storage costs, with regular backups adding even further to these costs.
-- When local computing power and memory became insufficient for large-scale text classification, text matching, or NLP tasks involving datasets such as patents and patent claims, deploying working environments and local LLMs to remote servers or serverless platforms from scratch required considerable time, technical effort, and computing power expense.
+- Duplicating the same datasets across multiple projects also substantially increased disk usage and cloud storage costs, with regular backups adding even further to these costs.
+- When local computing power and memory became insufficient for large-scale text classification, text matching, or NLP tasks involving datasets such as patents and patent claims, deploying working environments and local LLMs to remote servers or serverless platforms from scratch required considerable time.
 - Managing cron jobs and automated workflows that continuously “ingested”, preprocessed, transformed, and deployed frequently-updated data sources (often using multiple interpreters such as R and Python) became increasingly difficult.
-- Because each dataset came with its own data-sharing agreement, reproducing or replicating research was prohibitively costly for other researchers who needed to download datasets separately and setup the working environment in the way preferred by the authors.
+- Because each dataset came with its own data-sharing agreement, reproducing or replicating research was costly for other researchers who needed to download datasets separately and setup the working environment in the way preferred by the authors.
 - External researchers who would like to replicate or reproduce a given result frequently lacked access to or had difficulty in following revisions made to code and LaTeX files, reducing transparency and reproducibility.
 
 # Solution
