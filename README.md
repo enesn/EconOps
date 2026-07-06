@@ -117,3 +117,8 @@ Overall, the workflow ensures that each project version is explicitly mapped to 
 [Step 5: Metadata management [DL]](implementation/step5.md)
 
 [Step 6: Providing authenticated data access to co-authors, RAs, and external researchers [DL]](implementation/step6.md)
+
+# Implementation in Practice
+For a data layer, see https://github.com/enesn/tr-silc-panel. Also see https://github.com/enesn/us-psid-shelf-r/.
+For a project layer, see TBD.
+
