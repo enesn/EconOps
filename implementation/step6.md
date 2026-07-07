@@ -242,13 +242,13 @@ from dropbox.exceptions import AuthError, ApiError
 # CONFIGURATION
 # =====================================================================
 # App credentials (Only required if you are using a permanent refresh token)
-KEY = "yhh8bb4h929xw5g"
-SECRET = "2xhx3ntg3na4o2o"
+KEY = "your key"
+SECRET = "your secret"
 
 # Paste either token type here:
 # - Paste an "sl.u..." token (Short-lived, 4-hour export for replicators)
 # - Paste a "ds.u..." token (Permanent refresh token for pipelines/collaborators)
-TOKEN = "sl.u.AGjrVd3LQC8rqyp5h6dZqNK_WB9StTqxgZH4q43g3f2NkvFrUjp8zwm_oHS_9iSXhoyatuX2fs-e8kItysRGwfnUIZ7OEpbSEoyXFMEvJDc4VDekyC32LCst9Hr3puetdROcavCeRmg1WJ0inaGYz2Qc1D3LaeBfUflXNzeuSpA-_tUQfh6tLnQb5zXwpHRNAshXoe1B1QEfFpO59F4UOTEk1qemvpKHM-o__BKIWfwWlfIFLRhGbtbClKuJmSVJH6S-mFdERhDD2aHCLIyVbMjjzsdvWtJreaKq-KJp1RntjILtVrjLdeKfJ2MKkHG_mFaSKGiJw_laU0YY7x0l70Kq6SVLFbQQTs44WaAneJuTWljOoLZPELF5t-L9DfFVPTLf3Jivx5scZJlTVYv5aRZjkX4KLrRnWzfsjlhBwUGlEjXuDS9mo0X9BT9_p1mGkQb6r2DeMlLf98CKXGNGgtU499Vdvixgg3rjdJneildGr2Rb6VBQPNyM2BqI4nASBTtnCNqvVfMxf0OYN7MbovcT9uvl5F_jP7CBXzfYS6k7y7JMZ0uBijOd8nrFjl1zmIKOD58Y5Um4her6z2Bi5qHSQzPKQsQM25DCwEPJyKaoCbtGK81LhoMtdC8ZM5VSJoXCQrhUiy4ssROsSvrLMjg9ArjVLrpz3pBj6rNpGCzdwHDySEAJ5OhTMGvghqf5pKIc-RWL8LBgviIv1Bsv1JfUa86CVKFBi_WEW1PD1gKsmAygjKV-sK_sYS6iOTHNyEDxp9Aa7h3c6dbiVxjs9NX6kErF6RAyvYyn85vQh5p4k1r0Req-_Dn5nRP5ME2i3hFJ-2jnSClEBQHqkVlXm-e4eBUTx-azlilyG-bfNYYiF4dHYOBVwMxMsYWQMHOEhpjrQubYL8i-UAK0EstaXLQRC30OfuCUwan2b6jFDvVzv4S2uy98KEowzBL1P9KthB2IT-SR30AyyBOD9IwswnIVN47BlE1gE7piox1x6wxgqYS0pBPgNucdqCH9UFgJ14ZDXvjN1u7K0AZj_y9xCu0s7LN5MVX2HSvAF2QgNoNadl5gtSjre4z9iyXRRHSXwWdfQ2LEBt7wJ1LY9e3ycqs6iQdqcdmvxH5xT5ZzFmqZLLv5GLQXZufQzC2jTaZNlQEfMfEuk5dWWvispFcUYxpfig-X902zZvzV9BqcgU6iQ3xUyAO66j4Egvskk8sQ8TfLa7BzBtRinUAK4HzybLYS1mGFuINqly5xQm0WEfQWr66J9FDa6DJaMT-ulu0Q0FmEjI-DjI5nihXzXj-aW1mipFbjap2pVEVeq-asZMpxTjL5-5BPmgV4Bfil7Y5hfSE"
+TOKEN = "your token"
 
 # =====================================================================
 # AUTOMATED CLIENT CONFIGURATION
@@ -361,10 +361,10 @@ print(f"\n✓ Total files found: {len(all_files)}")
     # ============================================================
     # CONFIGURATION
     # ============================================================
-    KEY    <- "lbcapwh3y2npec6"
-    SECRET <- "g8kaanqyf03irpa"
+    KEY    <- "your key"
+    SECRET <- "your secret"
     
-    TOKEN <- "sl.u.AGeofBUb6etxo0Te-CkwrrrYL6L2VcDy3-0ap77zOnRAC1N5p-PBWTwv0lrN3nmo7RADFlg1BdbWLkk3YLRkAwOl7P5KQkmyPO_Ytmcnpq60Z2N_0du1ozbaY08UK_FxwPoG4XsH5UqCGnLtrysAMIAMG8sBzdwtXj47-Gn7fMqxGmEIFmXZiTPopDkVfDw4dJsxzWXMvQChZOWejLKNJGYg2J3XnancwxKnaq-yPd0UkzGUmLkA9rlj17A2zgi_NaZ3I6iBDBDZy5t3PEUoIjSHQXw0YJVe0ew4M1JlSlgtnLh2RD9i0j8NBydMdDFUwQowbFzGhmtfN2lbj2ng-Pi3GA7djkUnT4NQoDkpu8cKizDL0SSN5I5gReFuCk0YZDuPLBrh8A3DnEEo4F28ShCAtasX4QC6LOTn_3SzFC8bUTlvNOni5B7qg7Hss4XiJtYiKvKl4br989IRxJsIUsUv_2gmQYNcFuu2E3meKlkJdwBpAvW3s3-3TFE9MX1YElACAOGK7zDiZKbUhqR_anuy2K6-UAwWf4dysWixcqE8BDnmvrYxinGsspXlZp_0-4JzFt7r9vTq-hX8DUXaG4SNJXiNS7YGhnHJh6XDrathNZtXwbanZeGXqhu_6VHhko4jZxqDxFnITOCchuW85BJmFVNQOAOqd7nAKjv9MmFCczI2e3_Y9lcUkT4YlxvCjQaS2Fbpl6OStIGp4oafCD7gEpyIq_KPuNIciBAdu3t5Kkm_65WAa002A5ZuuK51XJUs2ppgS6pM6i9ofJef4OKBDz3w4MOrP5mAmFgDju2PtT2oKT_PzFqjsvvD6kLPXD1gNzGEys2WAg2vpDs_5RCtYS-0LVx6i-jFYHKfQEn8kD1roLgHwahT87MUyT2YW7EZxzpx0-WYh1X2EFPpB9HHdCCMLH3ROZMicK0swKKa-gk2MpAB8tWxOALZKsvK28LYK66P5eWCViYOXlcysbPfeWVZTnYqq408Se4sOLDpxFJcbXoTdSJDroQ7rGSzfkqjheIa0_p7631gCyRlsRnD6wNZ-tXsvCFhTqDJxErlrGwI5zkBMrB8-ow2NtZq2AW7iHCieucr5C4_g7Kj-eq8oB4JQgcEa5tGw1SB_B-RAPW1JtR3U6dcdOek7aO4XHk5nxuZas6aBZl6sDSe6EM63D6clMnoE-ElDoVOWXZ3Djl5WfmOjeCclNeQjbq4A0xYneCyjvaby7tZQbziDDP54f4eLeXYnM7m6nOwSqqCdIOBUa7d-6g0ZviGadIhddxBQpXqd0XKueObvJcxe-3B6Gkfz7yvv2OlEy_sDp3vHTHuT096_hYRJ4C5U-bXGG4"
+    TOKEN <- "your token"
     
     # ============================================================
     # AUTH HANDLING
