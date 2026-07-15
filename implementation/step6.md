@@ -113,8 +113,8 @@ library(jsonlite)
 # =====================================================================
 # CONFIGURATION
 # =====================================================================
-APP_KEY <- "fi2oqjuko41oi1r"
-APP_SECRET <- "ozzb1af2uudrmtl"
+APP_KEY <- "key"
+APP_SECRET <- "secret"
 
 # OPTIONS:
 # "refresh"     -> permanent backend pipelines
