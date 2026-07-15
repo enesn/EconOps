@@ -300,7 +300,8 @@ if (length(entries) == 0) {
     if (identical(tag, "folder")) {
       cat("📁", entry$name, "\n")
     } else if (identical(tag, "file")) {
-      cat("📄", entry$name, "\n")
+      cat(sprintf("📄 %s  (uploaded: %s)\n",
+                  entry$name, sub("Z", "", sub("T", " ", entry$server_modified))))
     }
   }
 }
@@ -327,7 +328,12 @@ navigate_dropbox <- function(start_path = "") {
     } else {
       for (i in seq_along(entries)) {
         icon <- ifelse(identical(entries[[i]]$`.tag`, "folder"), "📁", "📄")
-        cat(sprintf("  [%d] %s %s\n", i, icon, entries[[i]]$name))
+        stamp <- ""
+        if (!is.null(entries[[i]]$server_modified)) {
+          stamp <- sprintf("  (uploaded: %s)",
+                           sub("Z", "", sub("T", " ", entries[[i]]$server_modified)))
+        }
+        cat(sprintf("  [%d] %s %s%s\n", i, icon, entries[[i]]$name, stamp))
       }
     }
 
@@ -460,8 +466,28 @@ read_dropbox_file <- function(api_path, ..., use_cache = TRUE) {
 # EXAMPLE: BROWSE
 # ============================================================
   selected_path <- navigate_dropbox()
- if (!is.null(selected_path)) df <- read_dropbox_file(selected_path, 
+ if (!is.null(selected_path)) df <- read_dropbox_file(selected_path,
   col_select = c(ID, YEAR, TAXABLE_INCOME_ND_RC))
+
+# ============================================================
+# CACHE STATUS
+# ============================================================
+cat(sprintf("\n--- Local Cache (%s) ---\n", normalizePath(CACHE_DIR)))
+
+cached_files <- list.files(CACHE_DIR, full.names = TRUE)
+
+if (length(cached_files) == 0) {
+  cat("(cache is empty)\n")
+} else {
+  info <- file.info(cached_files)
+  for (i in seq_along(cached_files)) {
+    cat(sprintf("🗂️ %-40s %8.1f MB   cached: %s\n",
+                basename(cached_files[i]),
+                info$size[i] / 1e6,
+                format(info$mtime[i], "%Y-%m-%d %H:%M")))
+  }
+}
+
 
 
 ```
