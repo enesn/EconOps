@@ -103,7 +103,7 @@ except ApiError as e:
 
 - See R version
     
-    ```r
+ ```r
     # =====================================================================
 # PACKAGES
 # =====================================================================
@@ -249,7 +249,7 @@ tryCatch({
   cat("\n❌ Error during Dropbox API call:\n")
   cat(e$message, "\n")
 })
-    ```
+```
     
 
 ### User script to read data
