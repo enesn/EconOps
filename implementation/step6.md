@@ -374,7 +374,7 @@ navigate_dropbox <- function(start_path = "") {
 # ============================================================
 # LOCAL CACHE
 # ============================================================
-CACHE_DIR <- ".dbx_cache"
+CACHE_DIR <- "cached-input-data"
 dir.create(CACHE_DIR, showWarnings = FALSE, recursive = TRUE)
 
 dropbox_metadata <- function(api_path) {
@@ -397,14 +397,16 @@ cache_path_for <- function(api_path) {
 # ============================================================
 # UNIVERSAL FILE READER
 # ============================================================
-# Extra arguments in ... are forwarded to the format's reader, e.g.
-# col_select for parquet/csv (read only those columns into memory).
+# col_select (tidy-select, e.g. c(ID, YEAR)) reads only those columns
+# into memory; it applies to csv and parquet and is ignored (with a
+# warning) for other formats. Extra arguments in ... are forwarded to
+# the format's reader.
 #
 # Caching: downloads are stored in CACHE_DIR. The cached copy is reused
 # when it is newer than the file's server_modified time on Dropbox, or
 # when Dropbox cannot be reached. Set use_cache = FALSE to force a
 # fresh download.
-read_dropbox_file <- function(api_path, ..., use_cache = TRUE) {
+read_dropbox_file <- function(api_path, col_select = NULL, ..., use_cache = TRUE) {
 
   local_file <- cache_path_for(api_path)
 
@@ -443,18 +445,20 @@ read_dropbox_file <- function(api_path, ..., use_cache = TRUE) {
   ext <- tolower(tools::file_ext(api_path))
 
   if (ext == "csv") {
-    read_csv(local_file, ...)
+    read_csv(local_file, col_select = {{ col_select }}, ...)
 
   } else if (ext %in% c("xlsx", "xls")) {
+    if (!missing(col_select)) warning("col_select is ignored for Excel files")
     read_excel(local_file, ...)
 
   } else if (ext == "json") {
+    if (!missing(col_select)) warning("col_select is ignored for JSON files")
     fromJSON(local_file, ...)
 
   } else if (ext == "parquet") {
     # arrow restores R attributes stored in the file's metadata (haven
     # variable/value labels, labelled classes); DuckDB drops them.
-    arrow::read_parquet(local_file, ...)
+    arrow::read_parquet(local_file, col_select = {{ col_select }}, ...)
 
   } else {
     warning(paste("Unsupported format:", ext))
@@ -463,11 +467,31 @@ read_dropbox_file <- function(api_path, ..., use_cache = TRUE) {
 }
 
 # ============================================================
-# EXAMPLE: BROWSE
+# SELECT & READ
 # ============================================================
+# The interactively chosen path is remembered in the cache dir. On later
+# runs, if that file is already cached, the navigator is skipped and the
+# data is read directly (still version-checked against Dropbox). Delete
+# the .last_path file or run navigate_dropbox() manually to pick anew.
+LAST_PATH_FILE <- file.path(CACHE_DIR, ".last_path")
+
+selected_path <- NULL
+
+if (file.exists(LAST_PATH_FILE)) {
+  remembered <- readLines(LAST_PATH_FILE, n = 1)
+  if (file.exists(cache_path_for(remembered))) {
+    cat("↩️ Reusing cached selection:", remembered, "\n")
+    selected_path <- remembered
+  }
+}
+
+if (is.null(selected_path)) {
   selected_path <- navigate_dropbox()
- if (!is.null(selected_path)) df <- read_dropbox_file(selected_path,
-  col_select = c(ID, YEAR, TAXABLE_INCOME_ND_RC))
+  if (!is.null(selected_path)) writeLines(selected_path, LAST_PATH_FILE)
+}
+
+if (!is.null(selected_path)) df <- read_dropbox_file(selected_path, col_select = c(ID, YEAR, TAXABLE_INCOME_ND_RC, LABOR_TOT_INCOME_ND_RP))
+
 
 # ============================================================
 # CACHE STATUS
@@ -487,6 +511,17 @@ if (length(cached_files) == 0) {
                 format(info$mtime[i], "%Y-%m-%d %H:%M")))
   }
 }
+
+# ============================================================
+# SESSION CLEANUP
+# ============================================================
+# Drop everything this script created except the data itself — most
+# importantly the credentials (KEY, SECRET, TOKEN, token_header), which
+# should not linger in the workspace or get saved into .RData.
+rm(list = setdiff(ls(), "df"))
+invisible(gc())
+
+cat("\n🧹 Session cleaned .\n")
 
 
 
