@@ -104,126 +104,152 @@ except ApiError as e:
 - See R version
     
     ```r
-    # =====================================================================
-    # PACKAGES
-    # =====================================================================
-    library(httr)
-    library(jsonlite)
     
-    # =====================================================================
-    # CONFIGURATION
-    # =====================================================================
-    APP_KEY <- "lbcapwh3y2npec6"
-    APP_SECRET <- "g8kaanqyf03irpa"
-    
-    # OPTIONS:
-    # "refresh"     -> permanent backend pipelines
-    # "short_lived" -> external replicators (4-hour expiry)
-    TOKEN_MODE <- "short_lived"
-    
-    # =====================================================================
-    # STEP 1: TOKEN GENERATION FLOW
-    # =====================================================================
-    
-    access_type <- ifelse(TOKEN_MODE == "refresh", "offline", "online")
-    
-    cat(sprintf("▶ Initializing token manager in [%s] mode...\n", toupper(TOKEN_MODE)))
-    
-    # Dropbox OAuth endpoints
-    auth_url <- "https://www.dropbox.com/oauth2/authorize"
-    
-    query <- list(
-      client_id = APP_KEY,
-      response_type = "code",
-      token_access_type = access_type
-    )
-    
-    authorize_url <- modify_url(auth_url, query = query)
-    
-    cat("\n1. Open this URL in your browser to authorize access:\n")
-    cat(authorize_url, "\n")
-    
-    auth_code <- readline("\n2. Enter the authorization code here: ")
-    auth_code <- trimws(auth_code)
-    
-    # Exchange authorization code for token
-    token_response <- POST(
+# =====================================================================
+# PACKAGES
+# =====================================================================
+library(httr)
+library(jsonlite)
+
+# =====================================================================
+# CONFIGURATION
+# =====================================================================
+APP_KEY <- "fi2oqjuko41oi1r"
+APP_SECRET <- "ozzb1af2uudrmtl"
+
+# OPTIONS:
+# "refresh"     -> permanent backend pipelines
+# "short_lived" -> external replicators (4-hour expiry)
+TOKEN_MODE <- "refresh"
+
+# =====================================================================
+# STEP 1: TOKEN GENERATION FLOW
+# =====================================================================
+
+access_type <- ifelse(TOKEN_MODE == "refresh", "offline", "online")
+
+cat(sprintf("▶ Initializing token manager in [%s] mode...\n", toupper(TOKEN_MODE)))
+
+# Dropbox OAuth endpoints
+auth_url <- "https://www.dropbox.com/oauth2/authorize"
+
+query <- list(
+  client_id = APP_KEY,
+  response_type = "code",
+  token_access_type = access_type
+)
+
+authorize_url <- modify_url(auth_url, query = query)
+
+cat("\n1. Open this URL in your browser to authorize access:\n")
+cat(authorize_url, "\n")
+
+auth_code <- readline("\n2. Enter the authorization code here: ")
+auth_code <- trimws(auth_code)
+
+# Exchange authorization code for token
+token_response <- POST(
+  url = "https://api.dropboxapi.com/oauth2/token",
+  authenticate(APP_KEY, APP_SECRET),
+  body = list(
+    code = auth_code,
+    grant_type = "authorization_code"
+  ),
+  encode = "form"
+)
+
+oauth_result <- content(token_response, as = "parsed", type = "application/json")
+
+# =====================================================================
+# CREDENTIAL EXPORT
+# =====================================================================
+cat("\n=================== CREDENTIAL EXPORT ===================\n")
+
+if (TOKEN_MODE == "refresh") {
+  cat(sprintf('DROPBOX_REFRESH_TOKEN = "%s"\n', oauth_result$refresh_token))
+  cat("\n✓ Save this permanent Refresh Token for automated pipelines.\n")
+} else {
+  cat(sprintf('DROPBOX_ACCESS_TOKEN = "%s"\n', oauth_result$access_token))
+  cat("\n⚠️ Save this token. It will expire in ~4 hours.\n")
+}
+
+cat("=========================================================\n\n")
+
+# =====================================================================
+# STEP 2: VERIFY CONNECTION
+# =====================================================================
+cat("Testing generated credentials against the data layer...\n")
+
+tryCatch({
+
+  if (TOKEN_MODE == "short_lived") {
+
+    dbx_token <- oauth_result$access_token
+
+  } else {
+
+    # A refresh token cannot authenticate API calls directly; it must be
+    # exchanged for a short-lived access token first (same as a pipeline would).
+    refresh_response <- POST(
       url = "https://api.dropboxapi.com/oauth2/token",
       authenticate(APP_KEY, APP_SECRET),
       body = list(
-        code = auth_code,
-        grant_type = "authorization_code"
+        grant_type = "refresh_token",
+        refresh_token = oauth_result$refresh_token
       ),
       encode = "form"
     )
-    
-    oauth_result <- content(token_response, as = "parsed", type = "application/json")
-    
-    # =====================================================================
-    # CREDENTIAL EXPORT
-    # =====================================================================
-    cat("\n=================== CREDENTIAL EXPORT ===================\n")
-    
-    if (TOKEN_MODE == "refresh") {
-      cat(sprintf('DROPBOX_REFRESH_TOKEN = "%s"\n', oauth_result$refresh_token))
-      cat("\n✓ Save this permanent Refresh Token for automated pipelines.\n")
-    } else {
-      cat(sprintf('DROPBOX_ACCESS_TOKEN = "%s"\n', oauth_result$access_token))
-      cat("\n⚠️ Save this token. It will expire in ~4 hours.\n")
+
+    refresh_result <- content(refresh_response, as = "parsed", type = "application/json")
+
+    if (is.null(refresh_result$access_token)) {
+      stop(sprintf("Refresh token exchange failed: %s",
+                   paste(unlist(refresh_result), collapse = " ")))
     }
-    
-    cat("=========================================================\n\n")
-    
-    # =====================================================================
-    # STEP 2: VERIFY CONNECTION
-    # =====================================================================
-    cat("Testing generated credentials against the data layer...\n")
-    
-    tryCatch({
-    
-      if (TOKEN_MODE == "short_lived") {
-    
-        dbx_token <- oauth_result$access_token
-    
-      } else {
-    
-        dbx_token <- oauth_result$refresh_token
+
+    dbx_token <- refresh_result$access_token
+  }
+
+  # Call Dropbox API: list folder
+  res <- POST(
+    url = "https://api.dropboxapi.com/2/files/list_folder",
+    add_headers(
+      Authorization = paste("Bearer", dbx_token),
+      "Content-Type" = "application/json"
+    ),
+    body = toJSON(list(path = ""), auto_unbox = TRUE)
+  )
+
+  parsed <- content(res, as = "parsed", type = "application/json")
+
+  if (!is.null(parsed$entries)) {
+
+    cat("✅ Connection Successful! Verified data layer contents:\n\n")
+
+    file_count <- 0
+
+    for (entry in parsed$entries) {
+      if (!is.null(entry$`.tag`) && entry$`.tag` == "file") {
+        file_count <- file_count + 1
+        cat(sprintf("  📄 %s\n", entry$name))
       }
-    
-      # Call Dropbox API: list folder
-      res <- POST(
-        url = "https://api.dropboxapi.com/2/files/list_folder",
-        add_headers(
-          Authorization = paste("Bearer", dbx_token),
-          "Content-Type" = "application/json"
-        ),
-        body = toJSON(list(path = ""), auto_unbox = TRUE)
-      )
-    
-      parsed <- content(res, as = "parsed", type = "application/json")
-    
-      if (!is.null(parsed$entries)) {
-    
-        cat("✅ Connection Successful! Verified data layer contents:\n\n")
-    
-        file_count <- 0
-    
-        for (entry in parsed$entries) {
-          if (!is.null(entry$`.tag`) && entry$`.tag` == "file") {
-            file_count <- file_count + 1
-            cat(sprintf("  📄 %s\n", entry$name))
-          }
-        }
-    
-        if (file_count == 0) {
-          cat("  (Folder authenticated successfully, but contains no files.)\n")
-        }
-      }
-    
-    }, error = function(e) {
-      cat("\n❌ Error during Dropbox API call:\n")
-      cat(e$message, "\n")
-    })
+    }
+
+    if (file_count == 0) {
+      cat("  (Folder authenticated successfully, but contains no files.)\n")
+    }
+
+  } else {
+    cat("\n❌ Dropbox API returned an error:\n")
+    cat(sprintf("  %s\n", ifelse(is.null(parsed$error_summary),
+                                 paste(unlist(parsed), collapse = " "),
+                                 parsed$error_summary)))
+  }
+
+}, error = function(e) {
+  cat("\n❌ Error during Dropbox API call:\n")
+  cat(e$message, "\n")
+})
     ```
     
 
