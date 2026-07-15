@@ -22,86 +22,6 @@ You create a Dropbox app through the Dropbox Developer Console: https://www.drop
 
 **This script is used by the corresponding author.** It sets up Dropbox OAuth authentication and a data-loading pipeline. It lets us choose between a short-lived access token (for external replicators) or a long-lived refresh token (for RAs, collaborators), then runs a browser-based OAuth flow to generate an authorization code. As the owner of the account, you use this authorization code to generate token credentials and prints them for reuse. After authentication, it tests access by listing files in the user’s Dropbox app folder and handles any authentication or API errors:
 
-```python
-import os
-import dropbox
-from dropbox.oauth import DropboxOAuth2FlowNoRedirect
-from dropbox.exceptions import AuthError, ApiError
-
-# =====================================================================
-# CONFIGURATION
-# =====================================================================
-APP_KEY = "your app key"
-APP_SECRET = "your app secret"
-
-# OPTIONS: 
-# "refresh"     -> For permanent backend pipelines / internal RAs
-# "short_lived" -> For external journal replicators (Expires in 4 hours)
-TOKEN_MODE = "short_lived" # Change to "refresh" for permanent token generation
-
-# =====================================================================
-# STEP 1: TOKEN GENERATION FLOW
-# =====================================================================
-access_type = "offline" if TOKEN_MODE == "refresh" else "online"
-print(f"▶ Initializing token manager in [{TOKEN_MODE.upper()}] mode...")
-
-auth_flow = DropboxOAuth2FlowNoRedirect(APP_KEY, APP_SECRET, token_access_type=access_type)
-authorize_url = auth_flow.start()
-
-print(f"\n1. Open this URL in your browser to authorize access:\n{authorize_url}")
-auth_code = input("\n2. Enter the authorization code here: ").strip()
-
-# The critical fix: This step exchanges the temporary authorization code 
-# for actual credentials behind the scenes.
-oauth_result = auth_flow.finish(auth_code)
-
-print("\n=================== CREDENTIAL EXPORT ===================")
-if TOKEN_MODE == "refresh":
-    print(f'DROPBOX_REFRESH_TOKEN = "{oauth_result.refresh_token}"')
-    print("\n✓ Save this permanent Refresh Token for automated data pipelines.")
-else:
-    print(f'DROPBOX_ACCESS_TOKEN = "{oauth_result.access_token}"')
-    print("\n⚠️ Save this token. It will hard-expire in exactly 4 hours.")
-print("=========================================================\n")
-
-# =====================================================================
-# STEP 2: VERIFY CONNECTION TO PARQUET DATA LAYER
-# =====================================================================
-print("Testing generated credentials against the data layer...")
-
-try:
-    if TOKEN_MODE == "short_lived":
-        # Pass the resolved, functional short-lived token directly
-        dbx = dropbox.Dropbox(oauth2_access_token=oauth_result.access_token)
-    else:
-        # Pass the permanent background refresh token
-        dbx = dropbox.Dropbox(
-            oauth2_refresh_token=oauth_result.refresh_token,
-            app_key=APP_KEY,
-            app_secret=APP_SECRET
-        )
-        
-    # Execute metadata scan on the root app folder
-    result = dbx.files_list_folder("")
-    print("✅ Connection Successful! Verified data layer contents:")
-    
-    file_count = 0
-    for entry in result.entries:
-        if isinstance(entry, dropbox.files.FileMetadata):
-            file_count += 1
-            print(f"  📄 {entry.name} ({entry.size:,} bytes)")
-            
-    if file_count == 0:
-        print("  (Folder authenticated successfully, but contains no files.)")
-
-except AuthError as e:
-    print(f"\n❌ Authentication Denied: {e}")
-except ApiError as e:
-    print(f"\n❌ Dropbox Storage Architecture Error: {e}")
-
-```
-
-- See R version
     
  ```r
     # =====================================================================
@@ -258,235 +178,239 @@ tryCatch({
 
 It also defines a universal `read_dropbox_file()` function that streams files directly from Dropbox into memory and converts them into usable data formats. Depending on the file extension, it loads Parquet files via DuckDB, CSV files via pandas with automatic delimiter detection, Excel files via `read_excel`, and JSON files via `read_json`. If the format is unsupported, it returns raw bytes. Finally, it demonstrates usage by reading a CSV file directly from Dropbox, enabling zero-disk, authenticated access to research data.
 
+
+    
 ```r
-import os
-import dropbox
-from dropbox.exceptions import AuthError, ApiError
+# ============================================================
+# LIBRARIES
+# ============================================================
+library(httr2)
+library(jsonlite)
+library(readr)
+library(readxl)
+library(arrow)
+library(duckdb)
+library(DBI)
 
-# =====================================================================
+# ============================================================
 # CONFIGURATION
-# =====================================================================
-# App credentials (Only required if you are using a permanent refresh token)
-KEY = "your key"
-SECRET = "your secret"
+# ============================================================
+KEY    <- "key"
+SECRET <- "secret"
 
-# Paste either token type here:
-# - Paste an "sl.u..." token (Short-lived, 4-hour export for replicators)
-# - Paste a "ds.u..." token (Permanent refresh token for pipelines/collaborators)
-TOKEN = "your token"
+TOKEN <- "token"
 
-# =====================================================================
-# AUTOMATED CLIENT CONFIGURATION
-# =====================================================================
-print("Analyzing token signatures...")
+# ============================================================
+# AUTH HANDLING
+# ============================================================
+cat("Analyzing token signature...\n")
 
-if TOKEN.startswith("sl."):
-    print("▶ Target: SHORT-LIVED Access Token detected (External Replicator Mode).")
-    print("  Strategy: Disabling refresh loop. Initializing direct API context...")
-    
-    # Initialize using direct token validation without an token-exchange loop
-    dbx = dropbox.Dropbox(oauth2_access_token=TOKEN)
+# Token type is determined by behavior, not by format: Dropbox does not
+# guarantee token prefixes, so we probe the API instead of parsing the string.
+works_as_access_token <- function(tok) {
+  resp <- request("https://api.dropboxapi.com/2/check/user") |>
+    req_method("POST") |>
+    req_headers(
+      Authorization = paste("Bearer", tok),
+      "Content-Type" = "application/json"
+    ) |>
+    req_body_json(list(query = "ping")) |>
+    req_error(is_error = function(resp) FALSE) |>
+    req_perform()
 
-elif TOKEN.startswith("ds.") or len(TOKEN) < 100:
-    # Note: Depending on your app type, some older refresh tokens are short, 
-    # but modern scoped refresh tokens typically lean on the "ds." prefix.
-    print("▶ Target: PERMANENT Refresh Token detected (Pipeline / Collaborator Mode).")
-    print("  Strategy: Activating background OAuth2 engine for automated rotations...")
-    
-    # Initialize using the token-exchange loop (requires App Key & Secret)
-    dbx = dropbox.Dropbox(
-        oauth2_refresh_token=TOKEN,
-        app_key=KEY,
-        app_secret=SECRET
-    )
+  resp_status(resp) == 200
+}
 
-else:
-    raise ValueError(
-        "CRITICAL: Unrecognized token format. Your token must start with "
-        "'sl.' (short-lived) or 'ds.' (permanent refresh token)."
-    )
+if (works_as_access_token(TOKEN)) {
+  cat("▶ Token accepted as ACCESS token (replicator mode)\n")
 
-# =====================================================================
-# FILE TREE
-# =====================================================================
-def list_dropbox_tree(folder_path="", prefix=""):
-    """
-    Recursively prints folders and files in a tree layout starting from folder_path.
-    Returns a flat list of all file paths found.
-    """
-    all_files = []
-    try:
-        result = dbx.files_list_folder(folder_path)
-        entries = list(result.entries)
+  token_header <- paste("Bearer", TOKEN)
 
-        # Paginate if there are more entries
-        while result.has_more:
-            result = dbx.files_list_folder_continue(result.cursor)
-            entries.extend(result.entries)
+} else {
+  cat("▶ Direct auth failed — attempting REFRESH exchange (pipeline mode)...\n")
 
-        # Folders first, then files
-        folders = [e for e in entries if isinstance(e, dropbox.files.FolderMetadata)]
-        files   = [e for e in entries if isinstance(e, dropbox.files.FileMetadata)]
-        sorted_entries = sorted(folders, key=lambda e: e.name.lower()) + \
-                         sorted(files,   key=lambda e: e.name.lower())
+  refresh_resp <- request("https://api.dropboxapi.com/oauth2/token") |>
+    req_auth_basic(KEY, SECRET) |>
+    req_body_form(
+      grant_type = "refresh_token",
+      refresh_token = TOKEN
+    ) |>
+    req_error(is_error = function(resp) FALSE) |>
+    req_perform()
 
-        for i, entry in enumerate(sorted_entries):
-            is_last   = (i == len(sorted_entries) - 1)
-            connector = "└── " if is_last else "├── "
-            child_pfx = prefix + ("    " if is_last else "│   ")
+  refresh_data <- resp_body_json(refresh_resp)
 
-            if isinstance(entry, dropbox.files.FolderMetadata):
-                print(f"{prefix}{connector}📁 {entry.name}/")
-                sub_files = list_dropbox_tree(entry.path_lower, child_pfx)
-                all_files.extend(sub_files)
-            else:
-                size_kb = entry.size / 1024
-                print(f"{prefix}{connector}📄 {entry.name}  ({size_kb:,.1f} KB)")
-                all_files.append(entry.path_lower)
+  if (resp_status(refresh_resp) != 200 || is.null(refresh_data$access_token)) {
+    stop(paste(
+      "TOKEN is neither a valid access token nor a valid refresh token.",
+      "Check TOKEN, KEY, and SECRET (token may be expired or revoked)."
+    ))
+  }
 
-    except AuthError as e:
-        print("\n❌ AUTHENTICATION FAILED!")
-        if TOKEN.startswith("sl."):
-            print("  - Reason: Your 4-hour replication window has elapsed.")
-            print("  - Remedy: Please contact the corresponding author for a fresh session token.")
-        else:
-            print("  - Reason: App credentials (KEY/SECRET) mismatch or revoked refresh token.")
-        print(f"  - Technical Log: {e}")
-    except ApiError as e:
-        print(f"\n❌ STORAGE ARCHITECTURE ERROR: {e}")
+  token_header <- paste("Bearer", refresh_data$access_token)
+}
 
-    return all_files
+# ============================================================
+# LIST DROPBOX ROOT FILES
+# ============================================================
+cat("\nConnecting to Dropbox...\n")
 
-# =====================================================================
-# DATA LAYER EXECUTION
-# =====================================================================
-print("Connecting to secure data layer and scanning storage layout...")
-print("\n--- Dropbox File Tree ---")
-print("📦 (root)")
-all_files = list_dropbox_tree()
-print(f"\n✓ Total files found: {len(all_files)}")
+list_dropbox_entries <- function(path = "", recursive = TRUE) {
 
-```
+  resp <- request("https://api.dropboxapi.com/2/files/list_folder") |>
+    req_method("POST") |>
+    req_headers(
+      Authorization = token_header,
+      "Content-Type" = "application/json"
+    ) |>
+    req_body_json(list(path = path, recursive = recursive)) |>
+    req_perform()
 
-- See R version
-    
-    ```r
-    # ============================================================
-    # LIBRARIES
-    # ============================================================
-    library(httr2)
-    library(jsonlite)
-    library(readr)
-    library(readxl)
-    library(arrow)
-    library(duckdb)
-    library(DBI)
-    library(rawr)   # optional fallback for bytes handling
-    
-    # ============================================================
-    # CONFIGURATION
-    # ============================================================
-    KEY    <- "your key"
-    SECRET <- "your secret"
-    
-    TOKEN <- "your token"
-    
-    # ============================================================
-    # AUTH HANDLING
-    # ============================================================
-    cat("Analyzing token signature...\n")
-    
-    if (startsWith(TOKEN, "sl.")) {
-      cat("▶ SHORT-LIVED token detected (replicator mode)\n")
-      
-      token_header <- paste("Bearer", TOKEN)
-    
-    } else if (startsWith(TOKEN, "ds.")) {
-      cat("▶ REFRESH token detected (pipeline mode)\n")
-      
-      # In R, refresh flow is handled via OAuth app flow (simplified here)
-      token_header <- paste("Bearer", TOKEN)
-    
-    } else {
-      stop("Unrecognized token format. Must start with 'sl.' or 'ds.'")
-    }
-    
-    # ============================================================
-    # LIST DROPBOX ROOT FILES
-    # ============================================================
-    cat("\nConnecting to Dropbox...\n")
-    
-    req <- request("https://api.dropboxapi.com/2/files/list_folder") |>
+  data <- resp_body_json(resp)
+  entries <- data$entries
+
+  # Dropbox paginates results: keep fetching until has_more is FALSE
+  while (isTRUE(data$has_more)) {
+    resp <- request("https://api.dropboxapi.com/2/files/list_folder/continue") |>
       req_method("POST") |>
       req_headers(
         Authorization = token_header,
         "Content-Type" = "application/json"
       ) |>
-      req_body_json(list(path = ""))
-    
-    resp <- req_perform(req)
+      req_body_json(list(cursor = data$cursor)) |>
+      req_perform()
+
     data <- resp_body_json(resp)
-    
-    cat("\n--- Active Files ---\n")
-    
-    if (length(data$entries) == 0) {
-      cat("✓ Authentication successful, but folder is empty\n")
+    entries <- c(entries, data$entries)
+  }
+
+  entries
+}
+
+entries <- list_dropbox_entries("", recursive = FALSE)
+
+cat("\n--- Root Contents ---\n")
+
+if (length(entries) == 0) {
+  cat("✓ Authentication successful, but root is empty\n")
+} else {
+  for (entry in entries) {
+    tag <- entry$`.tag`
+    if (identical(tag, "folder")) {
+      cat("📁", entry$name, "\n")
+    } else if (identical(tag, "file")) {
+      cat("📄", entry$name, "\n")
+    }
+  }
+}
+
+# ============================================================
+# FOLDER NAVIGATION
+# ============================================================
+# Interactive browser over the Dropbox tree. Type an entry's number to
+# open a folder or select a file, ".." to go up one level, "q" to quit.
+# Returns the API path of the selected file (or NULL if quit), so the
+# result can be passed directly to read_dropbox_file().
+navigate_dropbox <- function(start_path = "") {
+
+  current <- start_path
+
+  repeat {
+
+    entries <- list_dropbox_entries(current, recursive = FALSE)
+
+    cat(sprintf("\n📂 %s\n", ifelse(current == "", "/ (root)", current)))
+
+    if (length(entries) == 0) {
+      cat("  (empty folder)\n")
     } else {
-      for (entry in data$entries) {
-        if (entry[".tag"] == "file") {
-          cat("📄", entry$name, "\n")
-        }
+      for (i in seq_along(entries)) {
+        icon <- ifelse(identical(entries[[i]]$`.tag`, "folder"), "📁", "📄")
+        cat(sprintf("  [%d] %s %s\n", i, icon, entries[[i]]$name))
       }
     }
-    
-    # ============================================================
-    # UNIVERSAL FILE READER
-    # ============================================================
-    read_dropbox_file <- function(api_path) {
-      
-      cat("📥 Streaming:", api_path, "\n")
-      
-      # Download file
-      req <- request("https://content.dropboxapi.com/2/files/download") |>
-        req_headers(
-          Authorization = token_header,
-          "Dropbox-API-Arg" = jsonlite::toJSON(list(path = api_path), auto_unbox = TRUE)
-        )
-      
-      resp <- req_perform(req)
-      file_bytes <- resp_body_raw(resp)
-      
-      ext <- tools::file_ext(api_path)
-      
-      if (ext == "csv") {
-        return(read_csv(rawConnection(file_bytes)))
-        
-      } else if (ext %in% c("xlsx", "xls")) {
-        tmp <- tempfile(fileext = paste0(".", ext))
-        writeBin(file_bytes, tmp)
-        return(read_excel(tmp))
-        
-      } else if (ext == "json") {
-        return(fromJSON(rawToChar(file_bytes)))
-        
-      } else if (ext == "parquet") {
-        tmp <- tempfile(fileext = ".parquet")
-        writeBin(file_bytes, tmp)
-        
-        con <- dbConnect(duckdb::duckdb())
-        df <- dbGetQuery(con, paste0("SELECT * FROM read_parquet('", tmp, "')"))
-        dbDisconnect(con, shutdown = TRUE)
-        
-        return(df)
-        
+
+    choice <- trimws(readline("Number to open, '..' = up, 'q' = quit: "))
+
+    if (tolower(choice) == "q") {
+      return(invisible(NULL))
+    }
+
+    if (choice == "..") {
+      if (current == "") {
+        cat("Already at root.\n")
       } else {
-        warning(paste("Unsupported format:", ext))
-        return(file_bytes)
+        # Drop the last path segment; "" means back at root
+        current <- sub("/[^/]+$", "", current)
       }
+      next
     }
+
+    idx <- suppressWarnings(as.integer(choice))
+
+    if (is.na(idx) || idx < 1 || idx > length(entries)) {
+      cat("Invalid selection, try again.\n")
+      next
+    }
+
+    entry <- entries[[idx]]
+
+    if (identical(entry$`.tag`, "folder")) {
+      current <- entry$path_lower
+    } else {
+      cat("✔ Selected:", entry$path_display, "\n")
+      return(entry$path_lower)
+    }
+  }
+}
+
+# ============================================================
+# UNIVERSAL FILE READER
+# ============================================================
+read_dropbox_file <- function(api_path) {
+  
+  cat("📥 Streaming:", api_path, "\n")
+  
+  # Download file
+  req <- request("https://content.dropboxapi.com/2/files/download") |>
+    req_headers(
+      Authorization = token_header,
+      "Dropbox-API-Arg" = jsonlite::toJSON(list(path = api_path), auto_unbox = TRUE)
+    )
+  
+  resp <- req_perform(req)
+  file_bytes <- resp_body_raw(resp)
+  
+  ext <- tools::file_ext(api_path)
+  
+  if (ext == "csv") {
+    return(read_csv(rawConnection(file_bytes)))
     
-    # ============================================================
-    # EXAMPLE READ
-    # ============================================================
-    df <- read_dropbox_file("/file.csv")
-    ```
+  } else if (ext %in% c("xlsx", "xls")) {
+    tmp <- tempfile(fileext = paste0(".", ext))
+    writeBin(file_bytes, tmp)
+    return(read_excel(tmp))
+    
+  } else if (ext == "json") {
+    return(fromJSON(rawToChar(file_bytes)))
+    
+  } else if (ext == "parquet") {
+    tmp <- tempfile(fileext = ".parquet")
+    writeBin(file_bytes, tmp)
+
+    # arrow restores R attributes stored in the file's metadata (haven
+    # variable/value labels, labelled classes); DuckDB drops them.
+    return(arrow::read_parquet(tmp))
+    
+  } else {
+    warning(paste("Unsupported format:", ext))
+    return(file_bytes)
+  }
+}
+
+# ============================================================
+# EXAMPLE: BROWSE
+# ============================================================
+  selected_path <- navigate_dropbox()
+ if (!is.null(selected_path)) df <- read_dropbox_file(selected_path)
+```
