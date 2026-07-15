@@ -181,6 +181,7 @@ It also defines a universal `read_dropbox_file()` function that streams files di
 
     
 ```r
+
 # ============================================================
 # LIBRARIES
 # ============================================================
@@ -195,10 +196,10 @@ library(DBI)
 # ============================================================
 # CONFIGURATION
 # ============================================================
-KEY    <- "key"
-SECRET <- "secret"
+KEY    <- "fi2oqjuko41oi1r"
+SECRET <- "ozzb1af2uudrmtl"
 
-TOKEN <- "token"
+TOKEN <- "EA-pJnCLy_IAAAAAAAAAAdorIg2xmQkg24_kJDjpTEBUkh7_K2pHQ53a-NeWFtlb"
 
 # ============================================================
 # AUTH HANDLING
@@ -365,46 +366,93 @@ navigate_dropbox <- function(start_path = "") {
 }
 
 # ============================================================
-# UNIVERSAL FILE READER
+# LOCAL CACHE
 # ============================================================
-read_dropbox_file <- function(api_path) {
-  
-  cat("📥 Streaming:", api_path, "\n")
-  
-  # Download file
-  req <- request("https://content.dropboxapi.com/2/files/download") |>
+CACHE_DIR <- ".dbx_cache"
+dir.create(CACHE_DIR, showWarnings = FALSE, recursive = TRUE)
+
+dropbox_metadata <- function(api_path) {
+  resp <- request("https://api.dropboxapi.com/2/files/get_metadata") |>
+    req_method("POST") |>
     req_headers(
       Authorization = token_header,
-      "Dropbox-API-Arg" = jsonlite::toJSON(list(path = api_path), auto_unbox = TRUE)
-    )
-  
-  resp <- req_perform(req)
-  file_bytes <- resp_body_raw(resp)
-  
-  ext <- tools::file_ext(api_path)
-  
-  if (ext == "csv") {
-    return(read_csv(rawConnection(file_bytes)))
-    
-  } else if (ext %in% c("xlsx", "xls")) {
-    tmp <- tempfile(fileext = paste0(".", ext))
-    writeBin(file_bytes, tmp)
-    return(read_excel(tmp))
-    
-  } else if (ext == "json") {
-    return(fromJSON(rawToChar(file_bytes)))
-    
-  } else if (ext == "parquet") {
-    tmp <- tempfile(fileext = ".parquet")
-    writeBin(file_bytes, tmp)
+      "Content-Type" = "application/json"
+    ) |>
+    req_body_json(list(path = api_path)) |>
+    req_perform()
 
+  resp_body_json(resp)
+}
+
+cache_path_for <- function(api_path) {
+  file.path(CACHE_DIR, gsub("[^A-Za-z0-9._-]+", "_", sub("^/+", "", api_path)))
+}
+
+# ============================================================
+# UNIVERSAL FILE READER
+# ============================================================
+# Extra arguments in ... are forwarded to the format's reader, e.g.
+# col_select for parquet/csv (read only those columns into memory).
+#
+# Caching: downloads are stored in CACHE_DIR. The cached copy is reused
+# when it is newer than the file's server_modified time on Dropbox, or
+# when Dropbox cannot be reached. Set use_cache = FALSE to force a
+# fresh download.
+read_dropbox_file <- function(api_path, ..., use_cache = TRUE) {
+
+  local_file <- cache_path_for(api_path)
+
+  fetch_needed <- TRUE
+
+  if (use_cache && file.exists(local_file)) {
+
+    remote_time <- tryCatch({
+      meta <- dropbox_metadata(api_path)
+      as.POSIXct(meta$server_modified, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    }, error = function(e) NULL)
+
+    if (is.null(remote_time)) {
+      warning("Could not check Dropbox version — using cached copy: ", local_file)
+      fetch_needed <- FALSE
+    } else if (file.mtime(local_file) >= remote_time) {
+      fetch_needed <- FALSE
+    }
+  }
+
+  if (fetch_needed) {
+    cat("📥 Downloading:", api_path, "\n")
+
+    resp <- request("https://content.dropboxapi.com/2/files/download") |>
+      req_headers(
+        Authorization = token_header,
+        "Dropbox-API-Arg" = jsonlite::toJSON(list(path = api_path), auto_unbox = TRUE)
+      ) |>
+      req_perform()
+
+    writeBin(resp_body_raw(resp), local_file)
+  } else {
+    cat("🗂️ Using cache:", local_file, "\n")
+  }
+
+  ext <- tolower(tools::file_ext(api_path))
+
+  if (ext == "csv") {
+    read_csv(local_file, ...)
+
+  } else if (ext %in% c("xlsx", "xls")) {
+    read_excel(local_file, ...)
+
+  } else if (ext == "json") {
+    fromJSON(local_file, ...)
+
+  } else if (ext == "parquet") {
     # arrow restores R attributes stored in the file's metadata (haven
     # variable/value labels, labelled classes); DuckDB drops them.
-    return(arrow::read_parquet(tmp))
-    
+    arrow::read_parquet(local_file, ...)
+
   } else {
     warning(paste("Unsupported format:", ext))
-    return(file_bytes)
+    readBin(local_file, "raw", file.size(local_file))
   }
 }
 
@@ -412,5 +460,8 @@ read_dropbox_file <- function(api_path) {
 # EXAMPLE: BROWSE
 # ============================================================
   selected_path <- navigate_dropbox()
- if (!is.null(selected_path)) df <- read_dropbox_file(selected_path)
+ if (!is.null(selected_path)) df <- read_dropbox_file(selected_path, 
+  col_select = c(ID, YEAR, TAXABLE_INCOME_ND_RC))
+
+
 ```
