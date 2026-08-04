@@ -182,24 +182,15 @@ It also defines a universal `read_dropbox_file()` function that streams files di
     
 ```r
 
-# ============================================================
-# LIBRARIES
-# ============================================================
-library(httr2)
-library(jsonlite)
-library(readr)
-library(readxl)
-library(arrow)
-library(duckdb)
-library(DBI)
 
 # ============================================================
-# CONFIGURATION
+# AUTH CONFIGURATION
 # ============================================================
-KEY    <- "fi2oqjuko41oi1r"
-SECRET <- "ozzb1af2uudrmtl"
+KEY    <- "key"
+SECRET <- "secret"
 
-TOKEN <- "EA-pJnCLy_IAAAAAAAAAAdorIg2xmQkg24_kJDjpTEBUkh7_K2pHQ53a-NeWFtlb"
+TOKEN <- "tokent"
+
 
 # ============================================================
 # AUTH HANDLING
@@ -374,7 +365,7 @@ navigate_dropbox <- function(start_path = "") {
 # ============================================================
 # LOCAL CACHE
 # ============================================================
-CACHE_DIR <- "cached-input-data"
+CACHE_DIR <- "01-cached-input-data"
 dir.create(CACHE_DIR, showWarnings = FALSE, recursive = TRUE)
 
 dropbox_metadata <- function(api_path) {
@@ -472,8 +463,8 @@ read_dropbox_file <- function(api_path, col_select = NULL, ..., use_cache = TRUE
 # The interactively chosen path is remembered in the cache dir. On later
 # runs, if that file is already cached, the navigator is skipped and the
 # data is read directly (still version-checked against Dropbox). Delete
-# the .last_path file or run navigate_dropbox() manually to pick anew.
-LAST_PATH_FILE <- file.path(CACHE_DIR, ".last_path")
+# the last_path file or run navigate_dropbox() manually to pick anew.
+LAST_PATH_FILE <- file.path(CACHE_DIR, "last_path")
 
 selected_path <- NULL
 
@@ -490,39 +481,6 @@ if (is.null(selected_path)) {
   if (!is.null(selected_path)) writeLines(selected_path, LAST_PATH_FILE)
 }
 
-if (!is.null(selected_path)) df <- read_dropbox_file(selected_path, col_select = c(ID, YEAR, TAXABLE_INCOME_ND_RC, LABOR_TOT_INCOME_ND_RP))
-
-
-# ============================================================
-# CACHE STATUS
-# ============================================================
-cat(sprintf("\n--- Local Cache (%s) ---\n", normalizePath(CACHE_DIR)))
-
-cached_files <- list.files(CACHE_DIR, full.names = TRUE)
-
-if (length(cached_files) == 0) {
-  cat("(cache is empty)\n")
-} else {
-  info <- file.info(cached_files)
-  for (i in seq_along(cached_files)) {
-    cat(sprintf("🗂️ %-40s %8.1f MB   cached: %s\n",
-                basename(cached_files[i]),
-                info$size[i] / 1e6,
-                format(info$mtime[i], "%Y-%m-%d %H:%M")))
-  }
-}
-
-# ============================================================
-# SESSION CLEANUP
-# ============================================================
-# Drop everything this script created except the data itself — most
-# importantly the credentials (KEY, SECRET, TOKEN, token_header), which
-# should not linger in the workspace or get saved into .RData.
-rm(list = setdiff(ls(), "df"))
-invisible(gc())
-
-cat("\n🧹 Session cleaned .\n")
-
-
+if (!is.null(selected_path)) df <- read_dropbox_file(selected_path)
 
 ```
