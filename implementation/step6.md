@@ -33,13 +33,13 @@ library(jsonlite)
 # =====================================================================
 # CONFIGURATION
 # =====================================================================
-APP_KEY <- "key"
-APP_SECRET <- "secret"
+APP_KEY <- readline("Enter a key value: ")
+APP_SECRET <- readline("Enter a secret value: ")
 
 # OPTIONS:
 # "refresh"     -> permanent backend pipelines
 # "short_lived" -> external replicators (4-hour expiry)
-TOKEN_MODE <- "refresh"
+TOKEN_MODE <- readline(" 'refresh' token or 'short-lived' token:")
 
 # =====================================================================
 # STEP 1: TOKEN GENERATION FLOW
