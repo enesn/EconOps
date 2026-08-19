@@ -26,9 +26,7 @@ In the data layer, the researcher either creates or uses a pre-existing `Docker`
 
 This layer aims for a reproducible, low-cost "data engineering" system where each incoming income survey such as PSID, SILC-EU, firm-level datasets such as Compustat, or product-level price data such as NielsenIQ are regularly “ingested” as raw immutable data (see Step 3), immediately converted into cleaned, standardized `Parquet` datasets (see Step 4), and organized into versioned "hot" (active) and "cold" (historical, reproducibility-only) folders stored directly as Parquet files in `Dropbox`, with rich metadata and codebooks kept alongside for ease of reference (see Step 5). 
 
-Because Parquet is a self-describing “columnar” format, no database server or object-storage is required: project layer (see below) queries the data as clean tables with `DuckDB`, which reads the Parquet files in place from Dropbox without complex querying. Authentication and access control are handled through Dropbox scoped API tokens, with short-lived tokens generated for replicators, long-lived refresh tokens generated for collaborators, RAs, and external researchers (see Step 6). 
-
-Compute-heavy operations (text classification and text matching, NLP, or large-scale cleaning) can be executed in Docker-based environments that can be quickly deployed to computing instances when needed by pulling pre-existing Docker images, scaling compute up temporarily, and shutting it down immediately after jobs finish. So the layer results in a file-based structure that separates storage (Dropbox + Parquet), compute (Docker/EC2 on-demand), query layer (DuckDB), and governance (Dropbox permissions + metadata registry).
+Because Parquet is a self-describing “columnar” format, no database server or object-storage is required: project layer (see below) queries the data as clean tables with `DuckDB`, which reads the Parquet files in place from Dropbox without complex querying. Authentication and access control are handled through Dropbox scoped API tokens (see Step 6). 
 
 ### Project Layer
 
