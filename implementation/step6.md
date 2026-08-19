@@ -13,11 +13,11 @@ A simple implementation is to store the data on Dropbox and have each project ac
 
 ### Creating a Dropbox app
 
-You create a Dropbox app through the Dropbox Developer Console: https://www.dropbox.com/developers/apps. In brief, you sign in to Dropbox, create a new app, and define its scope (such as full Dropbox access or a single app folder as in our case). Dropbox then generates an app key and secret, which you use to implement OAuth-based authentication in your system. 
+You create a Dropbox app through the Dropbox Developer Console: https://www.dropbox.com/developers/apps.
 
 ### Authentication script
 
-**This script is used by the corresponding author.** It sets up Dropbox OAuth authentication and a data-loading pipeline. It lets us choose between a short-lived access token (for external replicators) or a long-lived refresh token (for RAs, collaborators), then runs a browser-based OAuth flow to generate an authorization code. As the owner of the account, you use this authorization code to generate token credentials and prints them for reuse. After authentication, it tests access by listing files in the user’s Dropbox app folder and handles any authentication or API errors:
+**This script is used by the corresponding author.** It sets up Dropbox OAuth authentication and a data-loading pipeline.
 
     
  ```r
