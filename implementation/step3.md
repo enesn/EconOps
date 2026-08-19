@@ -13,6 +13,6 @@ For my scale, a simple file-storage workflow using Dropbox can still remain suff
 
 From a cost standpoint, Dropbox still appears to be a reasonable choice. It is also widely used among researchers and economists, and it supports simple OAuth-based authentication (see below) that keeps data fully cloud-hosted while allowing access through user-authorized short- or long-lived tokens. For our current needs and scale, moving to a dedicated object storage system would likely be overkilling.
 
-Since Dropbox already stores our family photos, videos, and documents, I expect to approach its 5 TB plan limit in about five years. Once we cross that threshold, it will make sense to reassess storage options. For example, it is possible to assemble a ~20 TB storage setup for around $1,500. But this would introduce important tradeoffs: we would lose the reliability, scalability, and global accessibility of managed services like R2, while also taking on responsibilities such as hardware maintenance, drive failures, and electricity costs. 
+Since Dropbox already stores our family photos, videos, and documents, I expect to approach its 5 TB plan limit in about five years.
 
 So TL;DR: Stick with Dropbox up to 5TB, then transition to R2 once you exceed that limit.
