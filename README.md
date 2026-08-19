@@ -30,50 +30,6 @@ Because Parquet is a self-describing “columnar” format, no database server o
 
 Compute-heavy operations (text classification and text matching, NLP, or large-scale cleaning) can be executed in Docker-based environments that can be quickly deployed to computing instances when needed by pulling pre-existing Docker images, scaling compute up temporarily, and shutting it down immediately after jobs finish. So the layer results in a file-based structure that separates storage (Dropbox + Parquet), compute (Docker/EC2 on-demand), query layer (DuckDB), and governance (Dropbox permissions + metadata registry).
 
-```yaml
-
-┌──────────────────────────────────────────────────────────┐
-│                   DATA SOURCES                           │
-├──────────────────────────────────────────────────────────┤
-│ Raw immutable files stored in standardized structure     │
-└────────────────────────────┬─────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────┐
-│                TRANSFORMATION LAYER                      |             
-├──────────────────────────────────────────────────────────┤
-│(Dev Container + Git)│Harmonization│Validation│ Metadata  │
-└────────────────────────────┬─────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────┐
-│                  PARQUET STORAGE                         │
-├──────────────────────────────────────────────────────────┤
-│ Hot Storage │ Cold Storage │ Versioned Datasets          │
-└────────────────────────────┬─────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────┐
-│                   QUERY LAYER                            │
-├──────────────────────────────────────────────────────────┤
-│ DuckDB │ SQL │ In-place querying from Dropbox            │
-└────────────────────────────┬─────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────┐
-│                  PROJECT LAYER                           │
-├──────────────────────────────────────────────────────────┤
-│ DevContainer │ Docker │ Git │ Analysis Scripts           │
-└────────────────────────────┬─────────────────────────────┘
-                             │
-                             ▼
-┌──────────────────────────────────────────────────────────┐
-│                 REPRODUCIBLE OUTPUTS                     │
-├──────────────────────────────────────────────────────────┤
-│ Tables │ Figures │ Papers │ Public Repository            │
-└──────────────────────────────────────────────────────────┘
-```
-
 ### Project Layer
 
 In the project layer, the researcher initializes and regularly updates a research-specific GitHub repository and either creates or uses a pre-existing `Docker` container stored in `GHCR` and Docker Hub. The container includes up-to-date R and Python environments, and key packages such as tidyverse and pandas, making the computing environment reproducible across different operating systems (see Step 2 for all the details).
@@ -82,21 +38,7 @@ The project layer then initializes a `.devcontainer` environment and a `devconta
 
 The project specific input data which is sufficiently small is kept inside the project repo, all the other datasets should be queried from the data layer using `DuckDB` or `SQL`. 
 
-The project version is traced through Git. Each Git commit in the project layer should represent one meaningful shift, with detailed explanations:
-
-- baseline configuration
-- baseline sample restriction
-- baseline exploratory data analysis
-- baseline model specification
-- adding/removing controls from model - 1
-- changing sample restriction
-- modifying estimation method
-
-A revision in response to a reviewer feedback would be made on a different Git branch. The researcher **does NOT silently change any parameters** in scripts. Commit and justify changes any like:
-
-- “Adjust standard-error clustering level from firm to industry”
-
- An external researcher can then trace which changes were made at each stage, with the corresponding results associated with each revision.
+The project version is traced through Git. An external researcher can then trace which changes were made at each stage, with the corresponding results associated with each revision.
 
 After the analysis is completed, a `run_all` script executes the full workflow end-to-end, generating all tables and figures, which are then exported into a text editor used by collaborators. The repository is synchronized and subsequently made public.
 
