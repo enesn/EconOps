@@ -1,8 +1,5 @@
 # Step 6: Providing authenticated data access to co-authors, RAs, and external researchers [DL]
-Some datasets are proprietary, which restricts redistribution, and even for semi-public sources like PSID, researchers are typically not allowed to share raw microdata. So replication repositories cannot include full input datasets or direct links to them. Instead, access can be granted to researchers who meet data use agreement requirements.
-
-A simple implementation is to store the data on Dropbox and have each project access it through a shared link that is available only to authenticated users, with the option to revoke the link once the work is completed. However, this approach still has important limitations.
-
+Some datasets are proprietary, which restricts redistribution, and even for semi-public sources like PSID, researchers are typically not allowed to share raw microdata. 
 
 ### How it works
 
@@ -17,7 +14,7 @@ You create a Dropbox app through the Dropbox Developer Console: https://www.drop
 
 ### Authentication script
 
-**This script is used by the corresponding author.** It sets up Dropbox OAuth authentication and a data-loading pipeline.
+**This script is used by the corresponding author.** It sets up Dropbox OAuth authentication.
 
     
  ```r
@@ -171,9 +168,7 @@ tryCatch({
 
 ### User script to read data
 
-**This script is the data import script included in the project repository (see Step 2) .** It connects Python/R to Dropbox using either a short-lived access token or a long-lived refresh token, then uses that authentication to inspect and read files stored in a Dropbox app folder. It first checks the token format: if it starts with `sl.`, it treats it as a temporary access token and connects directly; if it starts with `ds.` (or looks like a refresh token), it uses the app key and secret to authenticate through OAuth refresh flow. After establishing the client, it lists files in the root Dropbox directory and prints metadata like filename, size, and path, while handling authentication and API errors in a structured way.
-
-It also defines a universal `read_dropbox_file()` function that streams files directly from Dropbox into memory and converts them into usable data formats. Depending on the file extension, it loads Parquet files via DuckDB, CSV files via pandas with automatic delimiter detection, Excel files via `read_excel`, and JSON files via `read_json`. If the format is unsupported, it returns raw bytes. Finally, it demonstrates usage by reading a CSV file directly from Dropbox, enabling zero-disk, authenticated access to research data.
+**This script is the data import script included in the project repository (see Step 2) .**
 
 
     
