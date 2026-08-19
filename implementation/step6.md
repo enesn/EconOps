@@ -3,9 +3,6 @@ Some datasets are proprietary, which restricts redistribution, and even for semi
 
 A simple implementation is to store the data on Dropbox and have each project access it through a shared link that is available only to authenticated users, with the option to revoke the link once the work is completed. However, this approach still has important limitations.
 
-This approach treats access control as something we can manage with a simple shared link, when in reality research data governance requires auditable and revocable permissions. Dropbox links are too coarse: once a file is shared, it can be copied, forwarded, or cached outside your control. More importantly, it also lacks strong identity binding, so we cannot reliably enforce who is accessing what, when, or under which agreement terms—something that datasets like PSID explicitly require. 
-
-So what we need instead is a small authentication system that ties access to verified user identities, enforces time-bounded and purpose-specific permissions, and so access is both controlled and accountable rather than informally distributed through URLs.
 
 ### How it works
 
@@ -16,7 +13,7 @@ So what we need instead is a small authentication system that ties access to ver
 
 ### Creating a Dropbox app
 
-You create a Dropbox app through the Dropbox Developer Console: https://www.dropbox.com/developers/apps. In brief, you sign in to Dropbox, create a new app, and define its scope (such as full Dropbox access or a single app folder as in our case). Dropbox then generates an app key and secret, which you use to implement OAuth-based authentication in your system. After that, you configure permissions, optionally set redirect URIs for web flows, and use the OAuth flow to let users grant access so your application can securely read/write to the designated folder.
+You create a Dropbox app through the Dropbox Developer Console: https://www.dropbox.com/developers/apps. In brief, you sign in to Dropbox, create a new app, and define its scope (such as full Dropbox access or a single app folder as in our case). Dropbox then generates an app key and secret, which you use to implement OAuth-based authentication in your system. 
 
 ### Authentication script
 
