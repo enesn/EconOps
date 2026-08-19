@@ -42,7 +42,6 @@ After the analysis is completed, a `run_all` script executes the full workflow e
 
 If the data sharing agreement permits, authorized users with the appropriate authentication token can reproduce the full results with a few simple bash commands.
 
-Overall, the workflow ensures that each project version is explicitly mapped to its corresponding data and code state, enabling straightforward deployment, secure access via tokens, and full reproducibility through GitHub and `Docker`-based environments.
 
 # Implementation
 
